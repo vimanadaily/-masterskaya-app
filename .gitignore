@@ -1,0 +1,4 @@
+*.backup.json
+*.export.json
+/backups/
+.DS_Store
