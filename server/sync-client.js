@@ -84,25 +84,34 @@
    try{
      if(op==='backup'){exportJSON(localCopy(),'local');message('Резервная копия скачана.');return}
      if(op==='logout'){
+       pending=false;
        if(!confirm('Выйти из аккаунта? Локальные данные останутся на устройстве.'))return;
        active=false;await api('/api/logout','POST',{});
        me=null;remote=null;message('Выход выполнен.');return;
      }
-     if(op==='refresh'){active=false;await fetchRemote();message('Сведения с сервера обновлены. Выбери нужную базу.');return}
+     if(op==='refresh'){active=false;pending=false;await fetchRemote();message('Сведения с сервера обновлены. Выбери нужную базу.');return}
      if(op==='pull'){
        if(!remote?.data)return;
        if(!validImport(remote.data))throw new Error('Серверная база не прошла проверку и не была загружена.');
-       const old=localStorage.getItem(KEY);
+       const old=localStorage.getItem(KEY),previousState=state;
+       const previousLoadError=typeof dataLoadError!=='undefined'?dataLoadError:'';
        if(old&&!confirm('Заменить локальные данные серверной базой? Прежде будет скачана резервная JSON-копия.'))return;
        if(old)exportJSON(localCopy(),'local-before-pull');
        muted=true;
        try{
-         localStorage.setItem(KEY,JSON.stringify(remote.data));
-         state=initializeCategories(JSON.parse(JSON.stringify(remote.data)));
+         const candidate=initializeCategories(JSON.parse(JSON.stringify(remote.data)));
+         state=candidate;
+         const audit=fifoPool();
+         state=previousState;
+         if(audit.error)throw new Error('Серверная база не согласуется с историей склада: '+audit.error);
+         localStorage.setItem(KEY,JSON.stringify(candidate));
+         state=candidate;
          if(typeof dataLoadError!=='undefined')dataLoadError='';
          if(typeof render==='function')render();
          active=true;message('Серверная база открыта. Последующие сохранения отправляются на сервер.');
        }catch(e){
+         state=previousState;
+         if(typeof dataLoadError!=='undefined')dataLoadError=previousLoadError;
          if(old!==null)localStorage.setItem(KEY,old);else localStorage.removeItem(KEY);
          throw e;
        }finally{muted=false}
