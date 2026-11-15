@@ -91,12 +91,21 @@
      }
      if(op==='refresh'){active=false;pending=false;await fetchRemote();message('Сведения с сервера обновлены. Выбери нужную базу.');return}
      if(op==='pull'){
+       await fetchRemote();
        if(!remote?.data)return;
        if(!validImport(remote.data))throw new Error('Серверная база не прошла проверку и не была загружена.');
        const old=localStorage.getItem(KEY),previousState=state;
        const previousLoadError=typeof dataLoadError!=='undefined'?dataLoadError:'';
        if(old&&!confirm('Заменить локальные данные серверной базой? Прежде будет скачана резервная JSON-копия.'))return;
-       if(old)exportJSON(localCopy(),'local-before-pull');
+       if(old){
+         try{exportJSON(localCopy(),'local-before-pull');}
+         catch{
+           const blob=new Blob([old],{type:'application/json;charset=utf-8'});
+           const url=URL.createObjectURL(blob),link=document.createElement('a');
+           link.href=url;link.download='masterskaya-local-unreadable-'+new Date().toISOString().slice(0,10)+'.json';
+           document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
+         }
+       }
        muted=true;
        try{
          const candidate=initializeCategories(JSON.parse(JSON.stringify(remote.data)));
