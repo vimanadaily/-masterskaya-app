@@ -564,6 +564,7 @@ function readState(){
  persisted=false;
  return emptyState();
 }
+let materialCategoryFilter='',state=readState(),plannerRows=[],inventorySelected='',productionSelected='',view='dashboard',editingPurchaseId=null,purchaseEditing=false,purchaseDraft=null,productEditing=null,productDraft=null,calcSelected='',calcDraft={planned:50,good:50,setup:0,other:0,sale:150,fee:0,target:50,targetMode:'markup'},toastTimer;
 
 function save(){
  if(dataLoadError){toast('Сохранение заблокировано: повреждённые данные браузера нужно восстановить через импорт JSON.','error');return false}
@@ -578,6 +579,7 @@ function save(){
  updatePersistIndicator();
  return persisted;
 }
+const uid=()=>('id'+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
 
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function n(v){let a=Number(String(v??0).replace(',','.'));return Number.isFinite(a)?a:0}
