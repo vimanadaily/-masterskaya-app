@@ -34,7 +34,25 @@ services:
     ports:
       - "127.0.0.1:${HOST_PORT:-3100}:3000"
     networks: [internal]
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    user: "70:70"
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      DB_HOST: database
+      POSTGRES_DB: ${POSTGRES_DB:-masterskaya}
+      POSTGRES_USER: ${POSTGRES_USER:-masterskaya}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - backups_data:/backups
+      - ./backup.sh:/backup.sh:ro
+    entrypoint: ["/bin/sh", "/backup.sh"]
+    networks: [internal]
 networks:
   internal:
 volumes:
   postgres_data:
+  backups_data:
