@@ -1,4 +1,6 @@
 'use strict';
+process.env.APP_ORIGIN='http://localhost:3000';
+process.env.SETUP_TOKEN='local-test-token-0123456789-abcdefghijklmnopqrstuvwxyz';
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {validState,validEmail,validPassword,sessionCookie,sha}=require('../server.js');
