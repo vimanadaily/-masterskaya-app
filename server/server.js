@@ -246,6 +246,10 @@ async function handler(req,res){
   res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; form-action 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'");
   const pathname=new URL(req.url,ORIGIN).pathname;
   if(pathname==='/health' && req.method==='GET')return respond(res,200,{ok:true});
+  if(pathname==='/sync.css' && req.method==='GET'){
+    const body=await readFile(path.join(__dirname,'sync.css'));
+    res.writeHead(200,{'Content-Type':'text/css; charset=utf-8'});return res.end(body);
+  }
   if(pathname==='/sync-client.js' && req.method==='GET'){
     const body=await readFile(path.join(__dirname,'sync-client.js'));
     res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8'});return res.end(body);
@@ -256,8 +260,7 @@ async function handler(req,res){
   }
   if(pathname==='/' && req.method==='GET'){
     let body=await readFile(path.join(__dirname,'public','index.html'),'utf8');
-    body=body.replace('</head>','<style>html{visibility:hidden}</style></head>')
-      .replace('</body>','<script src="/sync-client.js" defer></script></body>');
+    body=body.replace('</body>','<script src="/sync-client.js" defer></script></body>');
     res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});return res.end(body);
   }
   if(!pathname.startsWith('/api/'))return fail(res,404,'not_found','Страница не найдена.');
