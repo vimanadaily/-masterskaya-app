@@ -37,7 +37,6 @@ services:
   backup:
     image: postgres:16-alpine
     restart: unless-stopped
-    user: "70:70"
     depends_on:
       database:
         condition: service_healthy
