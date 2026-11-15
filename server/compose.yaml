@@ -1,0 +1,40 @@
+name: masterskaya-server
+services:
+  database:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-masterskaya}
+      POSTGRES_USER: ${POSTGRES_USER:-masterskaya}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-masterskaya} -d ${POSTGRES_DB:-masterskaya}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+  app:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      PORT: "3000"
+      DB_HOST: database
+      POSTGRES_DB: ${POSTGRES_DB:-masterskaya}
+      POSTGRES_USER: ${POSTGRES_USER:-masterskaya}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      APP_ORIGIN: ${APP_ORIGIN:?Set APP_ORIGIN in .env}
+      SETUP_TOKEN: ${SETUP_TOKEN:?Set SETUP_TOKEN in .env}
+    ports:
+      - "127.0.0.1:${HOST_PORT:-3100}:3000"
+    networks: [internal]
+networks:
+  internal:
+volumes:
+  postgres_data:
