@@ -130,9 +130,31 @@ async function jsonBody(req) {
 }
 function validState(data) {
   if (!data || typeof data !== 'object' || Array.isArray(data) || data.schemaVersion !== 1) return false;
-  for (const key of ['materials', 'purchases', 'products', 'calculations']) if (!Array.isArray(data[key])) return false;
-  for (const key of ['productionBatches', 'inventoryCounts', 'sales', 'saleReturns', 'equipment', 'materialCategories'])
-    if (data[key] !== undefined && !Array.isArray(data[key])) return false;
+  const arrays = ['materials','purchases','products','calculations'];
+  const optional = ['productionBatches','inventoryCounts','sales','saleReturns','equipment','materialCategories'];
+  if (!arrays.every(k=>Array.isArray(data[k])&&data[k].length<=30000)) return false;
+  if (!optional.every(k=>data[k]===undefined||(Array.isArray(data[k])&&data[k].length<=30000))) return false;
+  if (!data.materials.every(x=>x&&typeof x.id==='string'&&x.id.length<256&&typeof x.name==='string'&&typeof x.unit==='string')) return false;
+  if (!data.purchases.every(p=>p&&typeof p.id==='string'&&typeof p.date==='string'&&Array.isArray(p.lines)&&p.lines.length<=30000&&
+    p.lines.every(l=>l&&typeof l.materialId==='string'&&Number.isFinite(Number(l.packs))&&Number(l.packs)>0&&
+      Number.isFinite(Number(l.packSize))&&Number(l.packSize)>0&&Number.isFinite(Number(l.price))&&Number(l.price)>=0))) return false;
+  if (!data.products.every(p=>p&&typeof p.id==='string'&&typeof p.name==='string'&&Array.isArray(p.recipe)&&Array.isArray(p.labor))) return false;
+  if (!data.calculations.every(c=>c&&typeof c.id==='string')) return false;
+  if (data.productionBatches && !data.productionBatches.every(b=>b&&typeof b.id==='string'&&typeof b.productId==='string'&&
+    typeof b.productName==='string'&&Number.isInteger(b.good)&&b.good>=1&&Array.isArray(b.recipeSnapshot)&&
+    b.recipeSnapshot.every(l=>l&&typeof l.materialId==='string'&&Number.isFinite(l.quantity)&&l.quantity>=0))) return false;
+  if (data.inventoryCounts && !data.inventoryCounts.every(c=>c&&typeof c.id==='string'&&typeof c.materialId==='string'&&
+    typeof c.date==='string'&&typeof c.createdAt==='string'&&typeof c.reason==='string'&&
+    [c.before,c.actual,c.delta,c.unitCost,c.valueChange].every(Number.isFinite)&&c.before>=0&&c.actual>=0&&c.unitCost>=0&&
+    Array.isArray(c.lotAllocations)&&c.lotAllocations.every(l=>l&&typeof l.lotId==='string'&&Number.isFinite(l.quantity)&&l.quantity>=0))) return false;
+  if (data.sales && !data.sales.every(x=>x&&typeof x.id==='string'&&typeof x.productId==='string'&&Number.isInteger(x.quantity)&&
+    x.quantity>0&&Number.isFinite(x.cogs)&&Array.isArray(x.allocations)&&x.allocations.every(a=>a&&typeof a.batchId==='string'&&
+      Number.isInteger(a.qty)&&a.qty>0&&Number.isFinite(a.unitCost)))) return false;
+  if (data.saleReturns && !data.saleReturns.every(x=>x&&typeof x.id==='string'&&typeof x.saleId==='string'&&
+    Number.isInteger(x.quantity)&&x.quantity>0&&Number.isFinite(x.refund)&&x.refund>=0&&Array.isArray(x.allocations))) return false;
+  if (data.equipment && !data.equipment.every(x=>x&&typeof x.id==='string'&&typeof x.name==='string'&&Number.isFinite(x.price)&&x.price>=0)) return false;
+  if (data.materialCategories && !data.materialCategories.every(x=>typeof x==='string'&&x.length<=80)) return false;
+  if (data.taxSettings && !(Number.isFinite(Number(data.taxSettings.rate))&&Number(data.taxSettings.rate)>=0&&Number(data.taxSettings.rate)<=100)) return false;
   return true;
 }
 async function currentUser(req) {
